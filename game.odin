@@ -1,9 +1,24 @@
 package main
 
+import "puzzle"
 import rl "vendor:raylib"
+
+SAMPLE :: `
+53. .7. ...
+6.. 195 ...
+.98 ... .6.
+8.. .6. ..3
+4.. 8.3 ..1
+7.. .2. ..6
+.6. ... 28.
+... 419 ..5
+... .8. .79
+`
 
 Game :: struct {
 	camera: rl.Camera2D,
+	board:  puzzle.Board,
+	font:   rl.Font,
 }
 
 update :: proc(game: ^Game) {
@@ -18,9 +33,10 @@ draw :: proc(game: Game) {
 
 	rl.BeginMode2D(game.camera)
 	draw_grid(game.camera.zoom)
+	draw_board(game)
 	rl.EndMode2D()
 
-	draw_hud()
+	draw_hud(game.font)
 }
 
 @(private = "file")

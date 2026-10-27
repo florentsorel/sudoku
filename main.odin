@@ -1,5 +1,6 @@
 package main
 
+import "puzzle"
 import rl "vendor:raylib"
 
 WINDOW_WIDTH :: 1280
@@ -12,7 +13,14 @@ main :: proc() {
 
 	rl.SetWindowMinSize(640, 360)
 
-	game := Game{}
+	game: Game
+
+	game.font = rl.LoadFontEx("assets/fonts/Inter_28pt-Medium.ttf", 128, nil, 0)
+	defer rl.UnloadFont(game.font)
+	rl.SetTextureFilter(game.font.texture, .BILINEAR)
+
+	puzzle.load(&game.board, SAMPLE)
+
 	for !rl.WindowShouldClose() {
 		update(&game)
 		draw(game)
