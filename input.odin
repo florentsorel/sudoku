@@ -6,12 +6,13 @@ import rl "vendor:raylib"
 
 @(private)
 keyboard_events :: proc(game: ^Game) {
+	// Global keys: always active, even on the win screen
 	if rl.IsKeyPressed(.F11) {
 		rl.ToggleBorderlessWindowed()
 	}
 
-	// Change cell selection
-	if game.has_selection {
+	// Grid keys: locked once the puzzle is won
+	if game.has_selection && !is_won(game^) {
 		if rl.IsKeyPressed(.LEFT) || rl.IsKeyPressedRepeat(.LEFT) do game.selected[1] -= 1
 		if rl.IsKeyPressed(.RIGHT) || rl.IsKeyPressedRepeat(.RIGHT) do game.selected[1] += 1
 		if rl.IsKeyPressed(.UP) || rl.IsKeyPressedRepeat(.UP) do game.selected[0] -= 1
@@ -36,10 +37,21 @@ keyboard_events :: proc(game: ^Game) {
 			puzzle.set(&game.board, r, c, 0)
 		}
 	}
+
+	// debug
+	when ODIN_DEBUG {
+		if rl.IsKeyPressed(.F2) do game.debug.won = !game.debug.won
+	}
 }
 
 @(private)
 mouse_events :: proc(game: ^Game) {
+	// The grid is locked once the puzzle is won
+	if is_won(game^) {
+		game.has_hover = false
+		return
+	}
+
 	r, c, ok := mouse_cell(game.camera)
 
 	// Updated every frame, so the hover disappears when the mouse leaves the grid

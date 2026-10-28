@@ -4,6 +4,8 @@ import "core:testing"
 
 SAMPLE :: "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"
 
+SOLUTION :: "534678912672195348198342567859761423426853791713924856961537284287419635345286179"
+
 @(test)
 test_is_valid :: proc(t: ^testing.T) {
 	b: Board
@@ -14,4 +16,18 @@ test_is_valid :: proc(t: ^testing.T) {
 	testing.expect(t, !is_valid(&b.cells, 0, 2, 9)) // 9 already in the top-left box
 	testing.expect(t, is_valid(&b.cells, 0, 2, 1)) // 1 is free everywhere
 	testing.expect(t, is_valid(&b.cells, 0, 0, 5)) // the 5 at (0, 0) doesn't clash with itself
+}
+
+@(test)
+test_is_solved :: proc(t: ^testing.T) {
+	b: Board
+
+	load(&b, SAMPLE)
+	testing.expect(t, !is_solved(&b.cells))
+
+	load(&b, SOLUTION)
+	testing.expect(t, is_solved(&b.cells))
+
+	b.cells[0][0], b.cells[0][1] = b.cells[0][1], b.cells[0][0]
+	testing.expect(t, !is_solved(&b.cells))
 }

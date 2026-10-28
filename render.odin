@@ -8,6 +8,8 @@ CELL_SIZE :: GRID_SIZE / 9
 MARGIN :: 40
 DIGIT_SIZE :: 60
 
+WIN_ACCENT :: rl.Color{47, 122, 79, 255}
+
 @(private = "file")
 DIGITS := [10]cstring{"", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
@@ -79,6 +81,42 @@ draw_selection :: proc(game: Game) {
 			}
 		}
 	}
+}
+
+draw_won :: proc(font: rl.Font, won: bool) {
+	if !won do return
+	ui := ui_scale()
+	w, h := f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())
+
+	// Dim the grid, keep it visible
+	rl.DrawRectangleRec({0, 0, w, h}, rl.Fade(rl.BLACK, 0.45))
+
+	title: cstring = "Well done!"
+	subtitle: cstring = "Solved"
+	title_size := 64 * ui
+	sub_size := 24 * ui
+	title_dim := rl.MeasureTextEx(font, title, title_size, 0)
+	sub_dim := rl.MeasureTextEx(font, subtitle, sub_size, 0)
+
+	// Card sized from its content
+	pad := 40 * ui
+	gap := 8 * ui
+	card_w := max(title_dim.x, sub_dim.x) + 2 * pad
+	card_h := title_dim.y + gap + sub_dim.y + 2 * pad
+	card := rl.Rectangle{(w - card_w) / 2, (h - card_h) / 2, card_w, card_h}
+
+	// Soft shadow slightly offset, then the card itself
+	shadow := card
+	shadow.x += 6 * ui
+	shadow.y += 8 * ui
+	rl.DrawRectangleRounded(shadow, 0.25, 16, rl.Fade(rl.BLACK, 0.25))
+	rl.DrawRectangleRounded(card, 0.25, 16, rl.RAYWHITE)
+
+	// Both lines centered in the card
+	y := card.y + pad
+	rl.DrawTextEx(font, title, {card.x + (card_w - title_dim.x) / 2, y}, title_size, 0, WIN_ACCENT)
+	y += title_dim.y + gap
+	rl.DrawTextEx(font, subtitle, {card.x + (card_w - sub_dim.x) / 2, y}, sub_size, 0, rl.GRAY)
 }
 
 make_camera :: proc() -> rl.Camera2D {

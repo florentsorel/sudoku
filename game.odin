@@ -23,12 +23,24 @@ Game :: struct {
 	has_selection: bool,
 	hovered:       [2]int,
 	has_hover:     bool,
+	won:           bool,
+	debug:         Debug,
+}
+
+Debug :: struct {
+	won: bool,
+}
+
+// Real win or forced by the debug key
+is_won :: proc(game: Game) -> bool {
+	return game.won || game.debug.won
 }
 
 update :: proc(game: ^Game) {
 	keyboard_events(game)
 	game.camera = make_camera()
 	mouse_events(game)
+	game.won = puzzle.is_solved(&game.board.cells)
 }
 
 draw :: proc(game: Game) {
@@ -36,11 +48,15 @@ draw :: proc(game: Game) {
 	defer rl.EndDrawing()
 	rl.ClearBackground(rl.LIGHTGRAY)
 
+	won := is_won(game)
+
 	rl.BeginMode2D(game.camera)
-	draw_selection(game)
+	if !won do draw_selection(game)
 	draw_grid(game.camera.zoom)
 	draw_board(game)
 	rl.EndMode2D()
+
+	draw_won(game.font, won)
 
 	draw_hud(game.font)
 }

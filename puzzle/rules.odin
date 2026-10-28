@@ -15,3 +15,14 @@ is_valid :: proc(cells: ^[9][9]u8, row, col: int, n: u8) -> bool {
 
 	return true
 }
+
+is_solved :: proc(cells: ^[9][9]u8) -> bool {
+	for r in 0 ..< 9 {
+		for c in 0 ..< 9 {
+			v := cells[r][c]
+			if v == 0 do return false
+			if !is_valid(cells, r, c, v) do return false
+		}
+	}
+	return true
+}
