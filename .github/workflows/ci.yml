@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  ODIN_RELEASE: dev-2026-10
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: ${{ env.ODIN_RELEASE }}
+      - name: Install raylib dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+          libglu1-mesa-dev libxcursor-dev libxinerama-dev
+      - name: Test
+        run: odin test . -all-packages -vet
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            artifact: sudoku-linux
+            binary: sudoku
+          - name: macOS
+            os: macos-latest
+            artifact: sudoku-macos
+            binary: sudoku
+          - name: Windows
+            os: windows-latest
+            artifact: sudoku-windows
+            binary: sudoku.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: ${{ env.ODIN_RELEASE }}
+      - name: Install raylib dependencies
+        if: runner.os == 'Linux'
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+          libglu1-mesa-dev libxcursor-dev libxinerama-dev
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p build
+          odin build . -vet -o:speed -out:build/${{ matrix.binary }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/${{ matrix.binary }}
+
+  web:
+    name: Build Web
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: ${{ env.ODIN_RELEASE }}
+      - uses: mymindstorm/setup-emsdk@v16
+      - name: Build
+        run: ./build_web.sh
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/web
+
+  pages:
+    name: Deploy to GitHub Pages
+    needs: web
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
