@@ -110,7 +110,8 @@ sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-d
 
 The web build also needs [Emscripten](https://emscripten.org/docs/getting_started/downloads.html)
 (`emcc` in your `PATH`). The Odin release archives include raylib's web library; some package
-managers (Homebrew) strip it.
+managers (Homebrew) strip it. In that case, take `vendor/raylib/wasm/libraylib.web.a` from the
+release archive of the same Odin version and point `RAYLIB_WEB_LIB` to it.
 
 ```sh
 ./build_web.sh
