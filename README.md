@@ -49,7 +49,7 @@ generator.
 - **Autosave** — the current puzzle is saved after every move and offered under *Continue*.
 - **Feedback** — a short sound on each move, and rows, columns and boxes light up when completed.
   Sounds are synthesized at startup: there is no audio file to ship.
-- **Self-contained** — the font is embedded in the executable.
+- **Self-contained** — the font and the icon are embedded in the executable.
 
 ---
 
@@ -146,7 +146,11 @@ sudoku/
 ├── save.odin              # Save and settings, as JSON
 ├── store_desktop.odin     # ...written to files on the desktop
 ├── store_web.odin         # ...or to localStorage in the browser
+├── icon_desktop.odin      # Window icon (Windows, Linux)
+├── icon_darwin.odin       # Dock icon (macOS)
 ├── puzzle/                # Sudoku rules, solver and generator, no raylib
+├── assets/                # Font and icon, embedded with #load
+├── sudoku.rc              # Icon of the Windows .exe
 ├── web/index_template.html
 └── build_web.sh
 ```

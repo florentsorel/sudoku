@@ -22,6 +22,8 @@ odin build . \
 ODIN_PATH="$(odin root)"
 RAYLIB_WEB_LIB="${RAYLIB_WEB_LIB:-$ODIN_PATH/vendor/raylib/wasm/libraylib.web.a}"
 cp "$ODIN_PATH/core/sys/wasm/js/odin.js" "$OUT_DIR"
+cp docs/assets/logo.svg "$OUT_DIR/favicon.svg"
+cp assets/icon/icon.png "$OUT_DIR/favicon.png"
 
 emcc -o "$OUT_DIR/index.html" \
 	"$OUT_DIR/game.wasm.o" \
