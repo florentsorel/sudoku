@@ -48,6 +48,31 @@ draw_board :: proc(game: Game) {
 	}
 }
 
+draw_selection :: proc(game: Game) {
+	sel := game.has_selection
+	sr, sc := game.selected[0], game.selected[1]
+
+	// Each cell is drawn at most once, so translucent colors never stack
+	for r in 0 ..< 9 {
+		for c in 0 ..< 9 {
+			same_row := sel && r == sr
+			same_col := sel && c == sc
+			same_box := sel && r / 3 == sr / 3 && c / 3 == sc / 3
+			is_selected := same_row && same_col
+			is_hovered := game.has_hover && r == game.hovered[0] && c == game.hovered[1]
+
+			// Priority: selected > hovered > related
+			if is_selected {
+				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.YELLOW, 0.25))
+			} else if is_hovered {
+				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.BLACK, 0.06))
+			} else if same_row || same_col || same_box {
+				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.YELLOW, 0.1))
+			}
+		}
+	}
+}
+
 make_camera :: proc() -> rl.Camera2D {
 	// BeginMode2D drops the HiDPI scale: the camera works in framebuffer pixels
 	w := f32(rl.GetRenderWidth())
@@ -62,6 +87,12 @@ make_camera :: proc() -> rl.Camera2D {
 
 ui_scale :: proc() -> f32 {
 	return f32(min(rl.GetScreenWidth(), rl.GetScreenHeight())) / WINDOW_HEIGHT
+}
+
+// Cell (row, col) to its rectangle in world space: col gives x, row gives y
+@(private = "file")
+cell_rect :: proc(r, c: int) -> rl.Rectangle {
+	return {f32(c) * CELL_SIZE, f32(r) * CELL_SIZE, CELL_SIZE, CELL_SIZE}
 }
 
 @(private = "file")
@@ -86,7 +117,8 @@ draw_digit :: proc(font: rl.Font, r, c: int, v: u8, color: rl.Color) {
 	ink_x := f32(info.offsetX) * scale
 	ink_y := f32(info.offsetY) * scale
 
-	x := f32(c) * CELL_SIZE + (CELL_SIZE - ink_w) / 2 - ink_x
-	y := f32(r) * CELL_SIZE + (CELL_SIZE - ink_h) / 2 - ink_y
+	cell := cell_rect(r, c)
+	x := cell.x + (cell.width - ink_w) / 2 - ink_x
+	y := cell.y + (cell.height - ink_h) / 2 - ink_y
 	rl.DrawTextEx(font, DIGITS[v], {x, y}, DIGIT_SIZE, 0, color)
 }
