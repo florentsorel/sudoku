@@ -29,6 +29,8 @@ jobs:
             os: windows-latest
             archive: sudoku-windows.zip
             binary: sudoku.exe
+            # Icon of the .exe in Explorer
+            flags: -resource:sudoku.rc
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -48,7 +50,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p build
-          odin build . -vet -o:speed -out:build/${{ matrix.binary }}
+          odin build . -vet -o:speed -out:build/${{ matrix.binary }} ${{ matrix.flags }}
       - name: Archive
         shell: bash
         run: |

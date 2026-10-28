@@ -64,6 +64,7 @@ IS_WEB :: ODIN_OS == .JS
 
 // Embedded in the executable: no assets folder to ship next to it
 FONT_DATA :: #load("assets/fonts/Inter_28pt-Medium.ttf")
+ICON_DATA :: #load("assets/icon/icon.png")
 
 // Window, audio, assets and the saved state. Shared by the desktop main
 // (main.odin) and the web entry points (main_web.odin).
@@ -72,6 +73,7 @@ init :: proc(game: ^Game) {
 	when !IS_WEB do flags += {.WINDOW_HIGHDPI}
 	rl.SetConfigFlags(flags)
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Sudoku")
+	when !IS_WEB do set_window_icon() // the page has its favicon
 	rl.SetWindowMinSize(640, 360)
 	rl.SetExitKey(.KEY_NULL) // Esc goes back to the menu instead of closing the window
 	rl.InitAudioDevice()
