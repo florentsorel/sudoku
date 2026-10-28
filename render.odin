@@ -8,7 +8,26 @@ CELL_SIZE :: GRID_SIZE / 9
 MARGIN :: 40
 DIGIT_SIZE :: 60
 
-WIN_ACCENT :: rl.Color{47, 122, 79, 255}
+// Palette. Fade() can't be used in constants, so alphas are written out (0-255)
+BACKGROUND_COLOR :: rl.LIGHTGRAY
+GRID_THIN_COLOR :: rl.DARKGRAY
+GRID_THICK_COLOR :: rl.BLACK
+
+DIGIT_GIVEN_COLOR :: rl.BLACK
+DIGIT_PLAYER_COLOR :: rl.DARKBLUE
+DIGIT_CONFLICT_COLOR :: rl.RED
+
+SELECTED_COLOR :: rl.Color{253, 249, 0, 63} // yellow, 25%
+PEER_COLOR :: rl.Color{253, 249, 0, 25} // yellow, 10%
+SAME_DIGIT_COLOR :: rl.Color{0, 121, 241, 45} // blue, 18%
+HOVER_COLOR :: rl.Color{0, 0, 0, 15} // black, 6%
+
+HUD_TEXT_COLOR :: rl.GRAY
+WIN_OVERLAY_COLOR :: rl.Color{0, 0, 0, 114} // black, 45%
+WIN_SHADOW_COLOR :: rl.Color{0, 0, 0, 63} // black, 25%
+WIN_CARD_COLOR :: rl.RAYWHITE
+WIN_ACCENT :: rl.Color{47, 122, 79, 255} // deep green
+WIN_SUBTITLE_COLOR :: rl.GRAY
 
 @(private = "file")
 DIGITS := [10]cstring{"", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
@@ -16,10 +35,10 @@ DIGITS := [10]cstring{"", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 draw_grid :: proc(zoom: f32) {
 	// Thin first, thicker after
 	for i in 0 ..= 9 {
-		if i % 3 != 0 do draw_grid_line(i, max(1.5, 1 / zoom), rl.DARKGRAY)
+		if i % 3 != 0 do draw_grid_line(i, max(1.5, 1 / zoom), GRID_THIN_COLOR)
 	}
 	for i in 0 ..= 9 {
-		if i % 3 == 0 do draw_grid_line(i, max(4, 2 / zoom), rl.BLACK)
+		if i % 3 == 0 do draw_grid_line(i, max(4, 2 / zoom), GRID_THICK_COLOR)
 	}
 }
 
@@ -35,7 +54,7 @@ draw_hud :: proc(font: rl.Font) {
 		{f32(rl.GetScreenWidth()) - vec2.x - margin, margin},
 		size,
 		0,
-		rl.GRAY,
+		HUD_TEXT_COLOR,
 	)
 }
 
@@ -50,11 +69,11 @@ draw_board :: proc(game: Game) {
 			color: rl.Color
 			switch {
 			case board.given[r][c]:
-				color = rl.BLACK
+				color = DIGIT_GIVEN_COLOR
 			case conflict:
-				color = rl.RED
+				color = DIGIT_CONFLICT_COLOR
 			case:
-				color = rl.DARKBLUE
+				color = DIGIT_PLAYER_COLOR
 			}
 
 			draw_digit(game.font, r, c, v, color)
@@ -63,6 +82,10 @@ draw_board :: proc(game: Game) {
 }
 
 draw_selection :: proc(game: Game) {
+	selected_v: u8
+
+	if game.has_selection do selected_v = game.board.cells[game.selected[0]][game.selected[1]]
+
 	// Each cell is drawn at most once, so translucent colors never stack
 	for r in 0 ..< 9 {
 		for c in 0 ..< 9 {
@@ -70,14 +93,17 @@ draw_selection :: proc(game: Game) {
 			is_selected := game.has_selection && cell == game.selected
 			is_hovered := game.has_hover && cell == game.hovered
 			is_peer := game.has_selection && puzzle.is_peer(cell, game.selected)
+			same_digit := selected_v != 0 && game.board.cells[r][c] == selected_v
 
-			// Priority: selected > hovered > peer
+			// Priority: selected > hovered > same digit > peer
 			if is_selected {
-				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.YELLOW, 0.25))
+				rl.DrawRectangleRec(cell_rect(r, c), SELECTED_COLOR)
 			} else if is_hovered {
-				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.BLACK, 0.06))
+				rl.DrawRectangleRec(cell_rect(r, c), HOVER_COLOR)
+			} else if same_digit {
+				rl.DrawRectangleRec(cell_rect(r, c), SAME_DIGIT_COLOR)
 			} else if is_peer {
-				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.YELLOW, 0.1))
+				rl.DrawRectangleRec(cell_rect(r, c), PEER_COLOR)
 			}
 		}
 	}
@@ -89,7 +115,7 @@ draw_won :: proc(font: rl.Font, won: bool) {
 	w, h := f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())
 
 	// Dim the grid, keep it visible
-	rl.DrawRectangleRec({0, 0, w, h}, rl.Fade(rl.BLACK, 0.45))
+	rl.DrawRectangleRec({0, 0, w, h}, WIN_OVERLAY_COLOR)
 
 	title: cstring = "Well done!"
 	subtitle: cstring = "Solved"
@@ -109,14 +135,21 @@ draw_won :: proc(font: rl.Font, won: bool) {
 	shadow := card
 	shadow.x += 6 * ui
 	shadow.y += 8 * ui
-	rl.DrawRectangleRounded(shadow, 0.25, 16, rl.Fade(rl.BLACK, 0.25))
-	rl.DrawRectangleRounded(card, 0.25, 16, rl.RAYWHITE)
+	rl.DrawRectangleRounded(shadow, 0.25, 16, WIN_SHADOW_COLOR)
+	rl.DrawRectangleRounded(card, 0.25, 16, WIN_CARD_COLOR)
 
 	// Both lines centered in the card
 	y := card.y + pad
 	rl.DrawTextEx(font, title, {card.x + (card_w - title_dim.x) / 2, y}, title_size, 0, WIN_ACCENT)
 	y += title_dim.y + gap
-	rl.DrawTextEx(font, subtitle, {card.x + (card_w - sub_dim.x) / 2, y}, sub_size, 0, rl.GRAY)
+	rl.DrawTextEx(
+		font,
+		subtitle,
+		{card.x + (card_w - sub_dim.x) / 2, y},
+		sub_size,
+		0,
+		WIN_SUBTITLE_COLOR,
+	)
 }
 
 make_camera :: proc() -> rl.Camera2D {

@@ -46,7 +46,7 @@ update :: proc(game: ^Game) {
 draw :: proc(game: Game) {
 	rl.BeginDrawing()
 	defer rl.EndDrawing()
-	rl.ClearBackground(rl.LIGHTGRAY)
+	rl.ClearBackground(BACKGROUND_COLOR)
 
 	won := is_won(game)
 
