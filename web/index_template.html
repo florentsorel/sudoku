@@ -20,6 +20,9 @@
 		}
 		canvas {
 			display: block;
+			/* CSS size of the canvas; its pixel buffer is devicePixelRatio times bigger */
+			width: 100vw;
+			height: 100vh;
 			border: 0;
 			outline: none;
 		}
@@ -74,8 +77,22 @@
 				e._start(); // runs Odin's @init procedures
 				e.main_start(); // main_web.odin
 
-				const sendSize = () => e.web_window_size_changed(window.innerWidth, window.innerHeight);
+				// Render at the screen's real resolution: on a Retina screen a canvas sized
+				// in CSS pixels is upscaled by the browser and looks blurry
+				const sendSize = () => {
+					const dpr = window.devicePixelRatio || 1;
+					e.web_window_size_changed(
+						Math.round(window.innerWidth * dpr),
+						Math.round(window.innerHeight * dpr),
+					);
+				};
 				window.addEventListener("resize", sendSize, true);
+				// Moving the window to a screen with another density doesn't always fire resize
+				const watchDensity = () => {
+					matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+						.addEventListener("change", () => { sendSize(); watchDensity(); }, { once: true });
+				};
+				watchDensity();
 				sendSize();
 
 				// Tab closed or hidden: the browser never calls main_end, so save now
