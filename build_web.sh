@@ -7,11 +7,11 @@ set -euo pipefail
 OUT_DIR="build/web"
 mkdir -p "$OUT_DIR"
 
-# RAYLIB_WASM_LIB=env.o: raylib is not linked by Odin here, emcc feeds it below
+# RAYLIB_WASM_LIB=env.o: raylib is not linked by Odin here, emcc feeds it below.
+# No -no-entry-point: it would drop _start, which the page calls to set up the runtime.
 odin build . \
 	-target:js_wasm32 \
 	-build-mode:obj \
-	-no-entry-point \
 	-define:RAYLIB_WASM_LIB=env.o \
 	-vet \
 	-o:speed \
