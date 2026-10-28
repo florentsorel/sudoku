@@ -72,3 +72,37 @@ test_set :: proc(t: ^testing.T) {
 	testing.expect(t, !set(&b, 0, 0, 0))
 	testing.expect_value(t, b.cells[0][0], 5)
 }
+
+@(test)
+test_toggle_note :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SAMPLE)
+
+	testing.expect(t, toggle_note(&b, 0, 2, 4))
+	testing.expect(t, 4 in b.notes[0][2])
+	testing.expect(t, toggle_note(&b, 0, 2, 4))
+	testing.expect(t, 4 not_in b.notes[0][2]) // toggled back off
+
+	testing.expect(t, !toggle_note(&b, 0, 0, 4)) // given cell
+	set(&b, 0, 2, 1)
+	testing.expect(t, !toggle_note(&b, 0, 2, 4)) // filled cell
+}
+
+@(test)
+test_set_clears_notes :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SAMPLE)
+	toggle_note(&b, 0, 2, 4)
+	toggle_note(&b, 0, 2, 1)
+	toggle_note(&b, 0, 3, 4) // same row
+	toggle_note(&b, 8, 2, 4) // same column
+	toggle_note(&b, 1, 1, 4) // same box
+	toggle_note(&b, 4, 4, 4) // unrelated
+
+	set(&b, 0, 2, 4)
+	testing.expect_value(t, b.notes[0][2], Digits{}) // own notes wiped
+	testing.expect(t, 4 not_in b.notes[0][3])
+	testing.expect(t, 4 not_in b.notes[8][2])
+	testing.expect(t, 4 not_in b.notes[1][1])
+	testing.expect(t, 4 in b.notes[4][4]) // not a peer: kept
+}

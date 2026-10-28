@@ -51,13 +51,31 @@ hint :: proc(b: ^Board, r, c: int) -> bool {
 	return set(b, r, c, cells[r][c])
 }
 
-// First empty cell, scanning row by row. ok = false if the grid is full.
+// Empty cell with the fewest candidates, ok = false if the grid is full.
+// Trying the most constrained cell first makes the search tree much smaller.
 @(private = "file")
 find_empty :: proc(cells: ^[9][9]u8) -> (int, int, bool) {
+	best_r, best_c, best_n := 0, 0, 10
 	for row in 0 ..< 9 {
 		for col in 0 ..< 9 {
-			if cells[row][col] == 0 do return row, col, true
+			if cells[row][col] != 0 do continue
+			n := card(candidates(cells, row, col))
+			if n < best_n {
+				best_r, best_c, best_n = row, col, n
+				if n <= 1 do return row, col, true // can't do better
+			}
 		}
 	}
-	return 0, 0, false // grid is full
+	return best_r, best_c, best_n < 10
+}
+
+// Digits that can still go in (r, c) given its row, column and box
+candidates :: proc(cells: ^[9][9]u8, r, c: int) -> (free: Digits) {
+	used: bit_set[0 ..= 9] // 0 included so empty cells can be added without a check
+	br, bc := r / 3 * 3, c / 3 * 3
+	for i in 0 ..< 9 {
+		used += {int(cells[r][i]), int(cells[i][c]), int(cells[br + i / 3][bc + i % 3])}
+	}
+	for n in 1 ..= 9 do if n not_in used do free += {n}
+	return
 }

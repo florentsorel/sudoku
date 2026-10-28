@@ -3,79 +3,110 @@ package main
 import "puzzle"
 import rl "vendor:raylib"
 
-
+// Play screen keys. Letters and digits are physical key positions (US layout names):
+// on AZERTY, .Z is the key labelled W, hence U as a layout-proof undo.
 @(private)
 keyboard_events :: proc(game: ^Game) {
-	// Global keys: always active, even on the win screen
-	if rl.IsKeyPressed(.F11) {
-		rl.ToggleBorderlessWindowed()
-	}
+	play := &game.play
 
-	// Grid keys: locked once the puzzle is won
-	if game.has_selection && !is_won(game^) {
-		if rl.IsKeyPressed(.LEFT) || rl.IsKeyPressedRepeat(.LEFT) do game.selected[1] -= 1
-		if rl.IsKeyPressed(.RIGHT) || rl.IsKeyPressedRepeat(.RIGHT) do game.selected[1] += 1
-		if rl.IsKeyPressed(.UP) || rl.IsKeyPressedRepeat(.UP) do game.selected[0] -= 1
-		if rl.IsKeyPressed(.DOWN) || rl.IsKeyPressedRepeat(.DOWN) do game.selected[0] += 1
+	if rl.IsKeyPressed(.U) || (command_down() && rl.IsKeyPressed(.Z)) do undo(play)
+	if rl.IsKeyPressed(.N) do play.note_mode = !play.note_mode
+	if rl.IsKeyPressed(.G) do toggle_highlights(game)
 
-		game.selected[0] = clamp(game.selected[0], 0, 8)
-		game.selected[1] = clamp(game.selected[1], 0, 8)
+	if !play.has_selection do return
 
-		r, c := game.selected[0], game.selected[1]
+	if rl.IsKeyPressed(.LEFT) || rl.IsKeyPressedRepeat(.LEFT) do play.selected[1] -= 1
+	if rl.IsKeyPressed(.RIGHT) || rl.IsKeyPressedRepeat(.RIGHT) do play.selected[1] += 1
+	if rl.IsKeyPressed(.UP) || rl.IsKeyPressedRepeat(.UP) do play.selected[0] -= 1
+	if rl.IsKeyPressed(.DOWN) || rl.IsKeyPressedRepeat(.DOWN) do play.selected[0] += 1
 
-		// Digit keys 1-9 (top row or keypad) write into the selected cell
-		for i in 0 ..< 9 {
-			top_row := rl.KeyboardKey(int(rl.KeyboardKey.ONE) + i)
-			keypad := rl.KeyboardKey(int(rl.KeyboardKey.KP_1) + i)
-			if rl.IsKeyPressed(top_row) || rl.IsKeyPressed(keypad) {
-				puzzle.set(&game.board, r, c, u8(i + 1))
-			}
-		}
+	play.selected[0] = clamp(play.selected[0], 0, 8)
+	play.selected[1] = clamp(play.selected[1], 0, 8)
 
-		// Delete value in cell
-		if rl.IsKeyPressed(.DELETE) || rl.IsKeyPressed(.BACKSPACE) {
-			puzzle.set(&game.board, r, c, 0)
-		}
+	r, c := play.selected[0], play.selected[1]
 
-		// Hint: reveal the right digit in the selected cell, counted only if it changed something
-		if rl.IsKeyPressed(.H) {
-			before := game.board.cells[r][c]
-			if puzzle.hint(&game.board, r, c) && game.board.cells[r][c] != before do game.hints += 1
-		}
-	}
-
-	// debug
-	when ODIN_DEBUG {
-		// F2: toggle the win screen without solving
-		if rl.IsKeyPressed(.F2) do game.debug.won = !game.debug.won
-
-		// F3: solve the grid from its given digits
-		if rl.IsKeyPressed(.F3) {
-			if cells, ok := puzzle.solution(game.board); ok {
-				game.board.cells = cells
-				game.debug.solved = true
+	// Digit keys 1-9 (top row or keypad): write, or toggle a note in note mode
+	for i in 0 ..< 9 {
+		top_row := rl.KeyboardKey(int(rl.KeyboardKey.ONE) + i)
+		keypad := rl.KeyboardKey(int(rl.KeyboardKey.KP_1) + i)
+		if rl.IsKeyPressed(top_row) || rl.IsKeyPressed(keypad) {
+			if play.note_mode {
+				toggle_note(game, r, c, u8(i + 1))
+			} else {
+				write(game, r, c, u8(i + 1))
 			}
 		}
 	}
+
+	// Delete value in cell
+	if rl.IsKeyPressed(.DELETE) || rl.IsKeyPressed(.BACKSPACE) do write(game, r, c, 0)
+
+	// Hint: reveal the right digit in the selected cell
+	if rl.IsKeyPressed(.H) do hint(game, r, c)
 }
 
 @(private)
 mouse_events :: proc(game: ^Game) {
-	// The grid is locked once the puzzle is won
-	if is_won(game^) {
-		game.has_hover = false
-		return
-	}
-
+	play := &game.play
 	r, c, ok := mouse_cell(game.camera)
 
 	// Updated every frame, so the hover disappears when the mouse leaves the grid
-	game.hovered = {r, c}
-	game.has_hover = ok
+	play.hovered = {r, c}
+	play.has_hover = ok
 
 	if ok && rl.IsMouseButtonPressed(.LEFT) {
-		game.selected = {r, c}
-		game.has_selection = true
+		play.selected = {r, c}
+		play.has_selection = true
+	}
+}
+
+// Write a digit (0 clears), with undo, sound and completion flashes
+@(private = "file")
+write :: proc(game: ^Game, r, c: int, v: u8) {
+	play := &game.play
+	before := play.board
+	if !puzzle.set(&play.board, r, c, v) {
+		rl.PlaySound(game.sounds.error) // given cell: can't be changed
+		return
+	}
+	if !record(play, before) || v == 0 do return
+
+	if puzzle.is_valid(&play.board.cells, r, c, v) {
+		rl.PlaySound(game.sounds.place)
+		start_flashes(play, before)
+	} else {
+		rl.PlaySound(game.sounds.error)
+	}
+}
+
+@(private = "file")
+toggle_note :: proc(game: ^Game, r, c: int, n: u8) {
+	play := &game.play
+	before := play.board
+	if puzzle.toggle_note(&play.board, r, c, n) && record(play, before) {
+		rl.PlaySound(game.sounds.note)
+	}
+}
+
+@(private = "file")
+hint :: proc(game: ^Game, r, c: int) {
+	play := &game.play
+	before := play.board
+	if puzzle.hint(&play.board, r, c) && record(play, before) {
+		play.hints += 1 // only counted when the hint changed something
+		rl.PlaySound(game.sounds.place)
+		start_flashes(play, before)
+	}
+}
+
+// Flash every row, column and box this edit completed
+@(private = "file")
+start_flashes :: proc(play: ^Play, before: puzzle.Board) {
+	prev := before // local copy: is_unit_complete needs an address
+	for unit in 0 ..< puzzle.UNIT_COUNT {
+		was := puzzle.is_unit_complete(&prev.cells, unit)
+		now := puzzle.is_unit_complete(&play.board.cells, unit)
+		if now && !was do play.flash[unit] = FLASH_TIME
 	}
 }
 

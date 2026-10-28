@@ -115,3 +115,11 @@ test_hint_refuses_given_cell :: proc(t: ^testing.T) {
 	testing.expect(t, !hint(&b, 0, 0))
 	testing.expect_value(t, b.cells[0][0], 5)
 }
+
+@(test)
+test_candidates :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SAMPLE)
+	// (0, 2): row has 5 3 7, column has 8, box has 6 9 8 → 1 2 4 left
+	testing.expect_value(t, candidates(&b.cells, 0, 2), Digits{1, 2, 4})
+}

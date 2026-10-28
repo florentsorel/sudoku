@@ -31,3 +31,25 @@ test_is_solved :: proc(t: ^testing.T) {
 	b.cells[0][0], b.cells[0][1] = b.cells[0][1], b.cells[0][0]
 	testing.expect(t, !is_solved(&b.cells))
 }
+
+@(test)
+test_unit_cells :: proc(t: ^testing.T) {
+	testing.expect_value(t, unit_cells(2)[5], [2]int{2, 5}) // row 2
+	testing.expect_value(t, unit_cells(9 + 4)[7], [2]int{7, 4}) // column 4
+	testing.expect_value(t, unit_cells(18 + 4)[0], [2]int{3, 3}) // center box
+	testing.expect_value(t, unit_cells(18 + 8)[8], [2]int{8, 8}) // last box
+}
+
+@(test)
+test_is_unit_complete :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SOLUTION)
+	for unit in 0 ..< UNIT_COUNT do testing.expect(t, is_unit_complete(&b.cells, unit))
+
+	b.cells[0][0] = 0
+	testing.expect(t, !is_unit_complete(&b.cells, 0)) // row 0 has a hole
+	testing.expect(t, is_unit_complete(&b.cells, 1)) // row 1 untouched
+
+	b.cells[0][0] = 3 // duplicate of the 3 at (0, 1)
+	testing.expect(t, !is_unit_complete(&b.cells, 0))
+}
