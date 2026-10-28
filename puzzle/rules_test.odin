@@ -1,3 +1,4 @@
+#+build !js
 package puzzle
 
 import "core:testing"

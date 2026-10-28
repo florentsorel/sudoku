@@ -13,12 +13,12 @@ Menu_Item :: enum {
 }
 
 MENU_LABELS := [Menu_Item]cstring {
-	.Continue = "Continue",
-	.Easy     = "New game: Easy",
-	.Medium   = "New game: Medium",
-	.Hard     = "New game: Hard",
+	.Continue   = "Continue",
+	.Easy       = "New game: Easy",
+	.Medium     = "New game: Medium",
+	.Hard       = "New game: Hard",
 	.Highlights = "", // depends on the setting, see menu_label
-	.Quit     = "Quit",
+	.Quit       = "Quit",
 }
 
 MENU_BUTTON_COLOR :: rl.RAYWHITE
@@ -46,7 +46,7 @@ update_menu :: proc(game: ^Game) {
 		}
 	}
 
-	if rl.IsKeyPressed(.ESCAPE) do game.quit = true
+	when !IS_WEB do if rl.IsKeyPressed(.ESCAPE) do game.quit = true
 	if !activate do return
 
 	switch items[game.menu_focus] {
@@ -115,6 +115,7 @@ draw_menu :: proc(game: Game) {
 menu_items :: proc(game: Game) -> (items: [len(Menu_Item)]Menu_Item, count: int) {
 	for item in Menu_Item {
 		if item == .Continue && !game.in_progress do continue
+		if item == .Quit && IS_WEB do continue // a web page can't close itself
 		items[count] = item
 		count += 1
 	}
