@@ -76,16 +76,20 @@ init :: proc(game: ^Game) {
 	rl.SetExitKey(.KEY_NULL) // Esc goes back to the menu instead of closing the window
 	rl.InitAudioDevice()
 
+	// Glyphs rasterized at 256 px: the menu title reaches ~200 px on a Retina
+	// screen, and an atlas smaller than the text is upscaled and looks blurry.
+	// Mipmaps keep the small HUD text clean when the atlas is scaled down.
 	font_data := FONT_DATA
 	game.font = rl.LoadFontFromMemory(
 		".ttf",
 		raw_data(font_data),
 		i32(len(font_data)),
-		128,
+		256,
 		nil,
 		0,
 	)
-	rl.SetTextureFilter(game.font.texture, .BILINEAR)
+	rl.GenTextureMipmaps(&game.font.texture)
+	rl.SetTextureFilter(game.font.texture, .TRILINEAR)
 	game.sounds = load_sounds()
 
 	game.settings = load_settings()

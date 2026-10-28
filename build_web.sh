@@ -2,6 +2,8 @@
 # Web build: Odin compiles the game to a wasm object, emscripten links it with
 # raylib's web library and wraps it in web/index_template.html.
 # Needs `odin` and `emcc` (emsdk) in PATH. Output: build/web/
+# RAYLIB_WEB_LIB overrides the path to libraylib.web.a, for Odin installs that
+# don't ship it (Homebrew).
 set -euo pipefail
 
 OUT_DIR="build/web"
@@ -18,11 +20,12 @@ odin build . \
 	-out:"$OUT_DIR/game.wasm.o"
 
 ODIN_PATH="$(odin root)"
+RAYLIB_WEB_LIB="${RAYLIB_WEB_LIB:-$ODIN_PATH/vendor/raylib/wasm/libraylib.web.a}"
 cp "$ODIN_PATH/core/sys/wasm/js/odin.js" "$OUT_DIR"
 
 emcc -o "$OUT_DIR/index.html" \
 	"$OUT_DIR/game.wasm.o" \
-	"$ODIN_PATH/vendor/raylib/wasm/libraylib.web.a" \
+	"$RAYLIB_WEB_LIB" \
 	-sUSE_GLFW=3 \
 	-sWASM_BIGINT \
 	-sALLOW_MEMORY_GROWTH \
