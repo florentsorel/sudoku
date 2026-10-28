@@ -43,7 +43,18 @@ draw_board :: proc(game: Game) {
 		for c in 0 ..< 9 {
 			v := board.cells[r][c]
 			if v == 0 do continue
-			color := rl.BLACK if board.given[r][c] else rl.DARKBLUE
+			conflict := !puzzle.is_valid(&board.cells, r, c, v)
+
+			color: rl.Color
+			switch {
+			case board.given[r][c]:
+				color = rl.BLACK
+			case conflict:
+				color = rl.RED
+			case:
+				color = rl.DARKBLUE
+			}
+
 			draw_digit(game.font, r, c, v, color)
 		}
 	}

@@ -54,3 +54,21 @@ test_is_peer :: proc(t: ^testing.T) {
 	testing.expect(t, !is_peer({4, 4}, {4, 4})) // a cell is not its own peer
 	testing.expect(t, !is_peer({0, 0}, {4, 4})) // unrelated
 }
+
+@(test)
+test_set :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79")
+
+	// Empty cell: write then clear
+	testing.expect(t, set(&b, 0, 2, 4))
+	testing.expect_value(t, b.cells[0][2], 4)
+	testing.expect(t, set(&b, 0, 2, 0))
+	testing.expect_value(t, b.cells[0][2], 0)
+
+	// Given cell: refused, value unchanged
+	testing.expect(t, !set(&b, 0, 0, 9))
+	testing.expect_value(t, b.cells[0][0], 5)
+	testing.expect(t, !set(&b, 0, 0, 0))
+	testing.expect_value(t, b.cells[0][0], 5)
+}

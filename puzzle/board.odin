@@ -27,6 +27,13 @@ load :: proc(b: ^Board, s: string) {
 	}
 }
 
+// Write v (0 = clear) into (r, c). Given cells are never modified.
+set :: proc(b: ^Board, r, c: int, v: u8) -> bool {
+	if b.given[r][c] do return false
+	b.cells[r][c] = v
+	return true
+}
+
 // Two cells share a 3×3 box when their box coordinates match
 same_box :: proc(a, b: [2]int) -> bool {
 	return a / 3 == b / 3

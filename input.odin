@@ -1,5 +1,6 @@
 package main
 
+import "puzzle"
 import rl "vendor:raylib"
 
 
@@ -19,6 +20,21 @@ keyboard_events :: proc(game: ^Game) {
 		game.selected[0] = clamp(game.selected[0], 0, 8)
 		game.selected[1] = clamp(game.selected[1], 0, 8)
 
+		r, c := game.selected[0], game.selected[1]
+
+		// Digit keys 1-9 (top row or keypad) write into the selected cell
+		for i in 0 ..< 9 {
+			top_row := rl.KeyboardKey(int(rl.KeyboardKey.ONE) + i)
+			keypad := rl.KeyboardKey(int(rl.KeyboardKey.KP_1) + i)
+			if rl.IsKeyPressed(top_row) || rl.IsKeyPressed(keypad) {
+				puzzle.set(&game.board, r, c, u8(i + 1))
+			}
+		}
+
+		// Delete value in cell
+		if rl.IsKeyPressed(.DELETE) || rl.IsKeyPressed(.BACKSPACE) {
+			puzzle.set(&game.board, r, c, 0)
+		}
 	}
 }
 
