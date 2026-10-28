@@ -1,5 +1,6 @@
 package main
 
+import "puzzle"
 import rl "vendor:raylib"
 
 GRID_SIZE :: 900
@@ -49,24 +50,20 @@ draw_board :: proc(game: Game) {
 }
 
 draw_selection :: proc(game: Game) {
-	sel := game.has_selection
-	sr, sc := game.selected[0], game.selected[1]
-
 	// Each cell is drawn at most once, so translucent colors never stack
 	for r in 0 ..< 9 {
 		for c in 0 ..< 9 {
-			same_row := sel && r == sr
-			same_col := sel && c == sc
-			same_box := sel && r / 3 == sr / 3 && c / 3 == sc / 3
-			is_selected := same_row && same_col
-			is_hovered := game.has_hover && r == game.hovered[0] && c == game.hovered[1]
+			cell := [2]int{r, c}
+			is_selected := game.has_selection && cell == game.selected
+			is_hovered := game.has_hover && cell == game.hovered
+			is_peer := game.has_selection && puzzle.is_peer(cell, game.selected)
 
-			// Priority: selected > hovered > related
+			// Priority: selected > hovered > peer
 			if is_selected {
 				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.YELLOW, 0.25))
 			} else if is_hovered {
 				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.BLACK, 0.06))
-			} else if same_row || same_col || same_box {
+			} else if is_peer {
 				rl.DrawRectangleRec(cell_rect(r, c), rl.Fade(rl.YELLOW, 0.1))
 			}
 		}

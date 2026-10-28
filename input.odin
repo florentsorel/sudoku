@@ -4,9 +4,21 @@ import rl "vendor:raylib"
 
 
 @(private)
-keyboard_events :: proc() {
+keyboard_events :: proc(game: ^Game) {
 	if rl.IsKeyPressed(.F11) {
 		rl.ToggleBorderlessWindowed()
+	}
+
+	// Change cell selection
+	if game.has_selection {
+		if rl.IsKeyPressed(.LEFT) || rl.IsKeyPressedRepeat(.LEFT) do game.selected[1] -= 1
+		if rl.IsKeyPressed(.RIGHT) || rl.IsKeyPressedRepeat(.RIGHT) do game.selected[1] += 1
+		if rl.IsKeyPressed(.UP) || rl.IsKeyPressedRepeat(.UP) do game.selected[0] -= 1
+		if rl.IsKeyPressed(.DOWN) || rl.IsKeyPressedRepeat(.DOWN) do game.selected[0] += 1
+
+		game.selected[0] = clamp(game.selected[0], 0, 8)
+		game.selected[1] = clamp(game.selected[1], 0, 8)
+
 	}
 }
 

@@ -37,3 +37,20 @@ test_load_ignores_layout :: proc(t: ^testing.T) {
 	)
 	testing.expect(t, flat == pretty)
 }
+
+@(test)
+test_same_box :: proc(t: ^testing.T) {
+	testing.expect(t, same_box({0, 0}, {2, 2})) // same top-left box
+	testing.expect(t, same_box({4, 4}, {3, 5})) // same center box
+	testing.expect(t, !same_box({2, 2}, {3, 3})) // diagonal neighbours, different boxes
+	testing.expect(t, !same_box({0, 0}, {0, 3})) // same row, different boxes
+}
+
+@(test)
+test_is_peer :: proc(t: ^testing.T) {
+	testing.expect(t, is_peer({4, 4}, {4, 0})) // same row
+	testing.expect(t, is_peer({4, 4}, {8, 4})) // same column
+	testing.expect(t, is_peer({4, 4}, {3, 5})) // same box only
+	testing.expect(t, !is_peer({4, 4}, {4, 4})) // a cell is not its own peer
+	testing.expect(t, !is_peer({0, 0}, {4, 4})) // unrelated
+}

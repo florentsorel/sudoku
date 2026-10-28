@@ -26,7 +26,7 @@ Game :: struct {
 }
 
 update :: proc(game: ^Game) {
-	keyboard_events()
+	keyboard_events(game)
 	game.camera = make_camera()
 	mouse_events(game)
 }

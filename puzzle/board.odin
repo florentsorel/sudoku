@@ -26,3 +26,13 @@ load :: proc(b: ^Board, s: string) {
 		if idx == 81 do break
 	}
 }
+
+// Two cells share a 3×3 box when their box coordinates match
+same_box :: proc(a, b: [2]int) -> bool {
+	return a / 3 == b / 3
+}
+
+// Peers can't hold the same digit: same row, column or box
+is_peer :: proc(a, b: [2]int) -> bool {
+	return a != b && (a[0] == b[0] || a[1] == b[1] || same_box(a, b))
+}
