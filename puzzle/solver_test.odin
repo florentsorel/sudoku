@@ -65,3 +65,53 @@ test_count_solutions_leaves_grid_untouched :: proc(t: ^testing.T) {
 	count_solutions(&b.cells, 2)
 	testing.expect(t, b.cells == before) // counting must undo every digit it tried
 }
+
+@(test)
+test_solution_ignores_player_digits :: proc(t: ^testing.T) {
+	b, expected: Board
+	load(&b, SAMPLE)
+	load(&expected, SOLUTION)
+	set(&b, 0, 2, 5) // wrong player digit, clashes with the 5 in row 0
+
+	cells, ok := solution(b)
+	testing.expect(t, ok)
+	testing.expect(t, cells == expected.cells)
+	testing.expect_value(t, b.cells[0][2], 5) // the board itself is untouched
+}
+
+@(test)
+test_solution_unsolvable :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, UNSOLVABLE)
+
+	_, ok := solution(b)
+	testing.expect(t, !ok)
+}
+
+@(test)
+test_hint_fills_empty_cell :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SAMPLE)
+
+	testing.expect(t, hint(&b, 0, 2))
+	testing.expect_value(t, b.cells[0][2], 4) // SOLUTION row 0: 534678912
+}
+
+@(test)
+test_hint_fixes_wrong_digit :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SAMPLE)
+	set(&b, 0, 2, 9) // wrong guess
+
+	testing.expect(t, hint(&b, 0, 2))
+	testing.expect_value(t, b.cells[0][2], 4)
+}
+
+@(test)
+test_hint_refuses_given_cell :: proc(t: ^testing.T) {
+	b: Board
+	load(&b, SAMPLE)
+
+	testing.expect(t, !hint(&b, 0, 0))
+	testing.expect_value(t, b.cells[0][0], 5)
+}

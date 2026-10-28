@@ -24,5 +24,8 @@ main :: proc() {
 	for !rl.WindowShouldClose() {
 		update(&game)
 		draw(game)
+
+		// Throwaway strings (fmt.ctprintf...) live one frame
+		free_all(context.temp_allocator)
 	}
 }

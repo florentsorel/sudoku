@@ -109,8 +109,7 @@ draw_selection :: proc(game: Game) {
 	}
 }
 
-draw_won :: proc(font: rl.Font, won: bool) {
-	if !won do return
+draw_won :: proc(font: rl.Font, subtitle: cstring) {
 	ui := ui_scale()
 	w, h := f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())
 
@@ -118,7 +117,6 @@ draw_won :: proc(font: rl.Font, won: bool) {
 	rl.DrawRectangleRec({0, 0, w, h}, WIN_OVERLAY_COLOR)
 
 	title: cstring = "Well done!"
-	subtitle: cstring = "Solved"
 	title_size := 64 * ui
 	sub_size := 24 * ui
 	title_dim := rl.MeasureTextEx(font, title, title_size, 0)

@@ -36,11 +36,26 @@ keyboard_events :: proc(game: ^Game) {
 		if rl.IsKeyPressed(.DELETE) || rl.IsKeyPressed(.BACKSPACE) {
 			puzzle.set(&game.board, r, c, 0)
 		}
+
+		// Hint: reveal the right digit in the selected cell, counted only if it changed something
+		if rl.IsKeyPressed(.H) {
+			before := game.board.cells[r][c]
+			if puzzle.hint(&game.board, r, c) && game.board.cells[r][c] != before do game.hints += 1
+		}
 	}
 
 	// debug
 	when ODIN_DEBUG {
+		// F2: toggle the win screen without solving
 		if rl.IsKeyPressed(.F2) do game.debug.won = !game.debug.won
+
+		// F3: solve the grid from its given digits
+		if rl.IsKeyPressed(.F3) {
+			if cells, ok := puzzle.solution(game.board); ok {
+				game.board.cells = cells
+				game.debug.solved = true
+			}
+		}
 	}
 }
 
