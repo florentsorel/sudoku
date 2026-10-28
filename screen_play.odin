@@ -73,7 +73,7 @@ draw_play_hud :: proc(game: Game) {
 	play := game.play
 	ui := ui_scale()
 	margin := 16 * ui
-	w, h := f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())
+	h := f32(rl.GetScreenHeight())
 
 	// Top-left: clock, difficulty, note mode
 	y := margin
@@ -112,8 +112,11 @@ draw_play_hud :: proc(game: Game) {
 		y += line
 	}
 
-	// Top-right
-	text: cstring = "F11  full screen"
-	dim := rl.MeasureTextEx(game.font, text, size, 0)
-	draw_text(game.font, text, {w - dim.x - margin, margin}, size, HUD_TEXT_COLOR)
+	// Top-right (desktop only: the browser has its own full screen)
+	when !IS_WEB {
+		w := f32(rl.GetScreenWidth())
+		text: cstring = "F11  full screen"
+		dim := rl.MeasureTextEx(game.font, text, size, 0)
+		draw_text(game.font, text, {w - dim.x - margin, margin}, size, HUD_TEXT_COLOR)
+	}
 }

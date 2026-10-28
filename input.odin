@@ -9,7 +9,9 @@ import rl "vendor:raylib"
 keyboard_events :: proc(game: ^Game) {
 	play := &game.play
 
-	if rl.IsKeyPressed(.U) || (command_down() && rl.IsKeyPressed(.Z)) do undo(play)
+	if rl.IsKeyPressed(.U) || (command_down() && rl.IsKeyPressed(.Z)) {
+		if undo(play) do save_game(play^)
+	}
 	if rl.IsKeyPressed(.N) do play.note_mode = !play.note_mode
 	if rl.IsKeyPressed(.G) do toggle_highlights(game)
 
@@ -69,7 +71,9 @@ write :: proc(game: ^Game, r, c: int, v: u8) {
 		rl.PlaySound(game.sounds.error) // given cell: can't be changed
 		return
 	}
-	if !record(play, before) || v == 0 do return
+	if !record(play, before) do return
+	save_game(play^) // autosave: a crash or a closed tab loses nothing
+	if v == 0 do return
 
 	if puzzle.is_valid(&play.board.cells, r, c, v) {
 		rl.PlaySound(game.sounds.place)
@@ -84,6 +88,7 @@ toggle_note :: proc(game: ^Game, r, c: int, n: u8) {
 	play := &game.play
 	before := play.board
 	if puzzle.toggle_note(&play.board, r, c, n) && record(play, before) {
+		save_game(play^)
 		rl.PlaySound(game.sounds.note)
 	}
 }
@@ -94,6 +99,7 @@ hint :: proc(game: ^Game, r, c: int) {
 	before := play.board
 	if puzzle.hint(&play.board, r, c) && record(play, before) {
 		play.hints += 1 // only counted when the hint changed something
+		save_game(play^)
 		rl.PlaySound(game.sounds.place)
 		start_flashes(play, before)
 	}
@@ -112,7 +118,10 @@ start_flashes :: proc(play: ^Play, before: puzzle.Board) {
 
 @(private = "file")
 mouse_cell :: proc(camera: rl.Camera2D) -> (r, c: int, ok: bool) {
-	mp := rl.GetMousePosition() * rl.GetWindowScaleDPI()
+	// Mouse in logical pixels, camera in framebuffer pixels: scale by their ratio.
+	// 2 on a Retina screen with WINDOW_HIGHDPI, 1 elsewhere (including the web build).
+	scale := f32(rl.GetRenderWidth()) / f32(rl.GetScreenWidth())
+	mp := rl.GetMousePosition() * scale
 	world := rl.GetScreenToWorld2D(mp, camera)
 
 	if world.x < 0 || world.y < 0 do return

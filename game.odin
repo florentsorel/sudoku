@@ -55,9 +55,70 @@ Play :: struct {
 
 FLASH_TIME :: 0.6
 
+WINDOW_WIDTH :: 1280
+WINDOW_HEIGHT :: 720
+
+// Is this the browser build? The web page owns the window there: no full screen
+// toggle, no Quit button, and the canvas is resized from JavaScript.
+IS_WEB :: ODIN_OS == .JS
+
+// Embedded in the executable: no assets folder to ship next to it
+FONT_DATA :: #load("assets/fonts/Inter_28pt-Medium.ttf")
+
+// Window, audio, assets and the saved state. Shared by the desktop main
+// (main.odin) and the web entry points (main_web.odin).
+init :: proc(game: ^Game) {
+	flags: rl.ConfigFlags = {.VSYNC_HINT, .WINDOW_RESIZABLE}
+	when !IS_WEB do flags += {.WINDOW_HIGHDPI}
+	rl.SetConfigFlags(flags)
+	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Sudoku")
+	rl.SetWindowMinSize(640, 360)
+	rl.SetExitKey(.KEY_NULL) // Esc goes back to the menu instead of closing the window
+	rl.InitAudioDevice()
+
+	font_data := FONT_DATA
+	game.font = rl.LoadFontFromMemory(
+		".ttf",
+		raw_data(font_data),
+		i32(len(font_data)),
+		128,
+		nil,
+		0,
+	)
+	rl.SetTextureFilter(game.font.texture, .BILINEAR)
+	game.sounds = load_sounds()
+
+	game.settings = load_settings()
+	if data, ok := load_game(); ok do resume(game, data)
+}
+
+// One frame. false when the game wants to stop.
+frame :: proc(game: ^Game) -> bool {
+	update(game)
+	draw(game^)
+
+	// Throwaway strings (fmt.ctprintf...) live one frame
+	free_all(context.temp_allocator)
+
+	// Never asked on the web: WindowShouldClose sleeps 16 ms there
+	when !IS_WEB do if rl.WindowShouldClose() do return false
+	return !game.quit
+}
+
+shutdown :: proc(game: ^Game) {
+	// Keep an unfinished puzzle for next time
+	if game.in_progress do save_game(game.play)
+
+	delete(game.play.history)
+	unload_sounds(game.sounds)
+	rl.UnloadFont(game.font)
+	rl.CloseAudioDevice()
+	rl.CloseWindow()
+}
+
 update :: proc(game: ^Game) {
 	// Global keys: active on every screen
-	if rl.IsKeyPressed(.F11) do rl.ToggleBorderlessWindowed()
+	when !IS_WEB do if rl.IsKeyPressed(.F11) do rl.ToggleBorderlessWindowed()
 	game.camera = make_camera() // after F11, which may resize the window
 
 	switch game.screen {

@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+	Page for the web build. emcc fills {{{ SCRIPT }}} with emscripten's loader.
+	Based on karl-zylinski/odin-raylib-web (source/main_web/index_template.html),
+	Copyright (c) 2025-2026 Karl Zylinski, zlib license. Changed: full-window
+	canvas, localStorage bindings, save on page hide.
+-->
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Sudoku</title>
+	<meta name="description" content="Sudoku written in Odin with raylib">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		html, body {
+			margin: 0;
+			height: 100%;
+			overflow: hidden;
+			background-color: #c8c8c8; /* rl.LIGHTGRAY, same as the game */
+		}
+		canvas {
+			display: block;
+			border: 0;
+			outline: none;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1" onmousedown="event.target.focus()" onkeydown="event.preventDefault()"></canvas>
+	<script type="text/javascript" src="odin.js"></script>
+	<script>
+		var odinMemoryInterface = new odin.WasmMemoryInterface();
+		odinMemoryInterface.setIntSize(4);
+		var odinImports = odin.setupDefaultImports(odinMemoryInterface);
+
+		// store_web.odin: saves and settings live in localStorage
+		const PREFIX = "sudoku-odin/";
+		const encoder = new TextEncoder();
+		const sudokuStorage = {
+			storage_set: (keyPtr, keyLen, valuePtr, valueLen) => {
+				const key = odinMemoryInterface.loadString(keyPtr, keyLen);
+				const value = odinMemoryInterface.loadString(valuePtr, valueLen);
+				try { localStorage.setItem(PREFIX + key, value); } catch (e) { /* private mode, quota */ }
+			},
+			storage_length: (keyPtr, keyLen) => {
+				const key = odinMemoryInterface.loadString(keyPtr, keyLen);
+				const value = localStorage.getItem(PREFIX + key);
+				return value === null ? -1 : encoder.encode(value).length;
+			},
+			storage_get: (keyPtr, keyLen, bufPtr, bufLen) => {
+				const key = odinMemoryInterface.loadString(keyPtr, keyLen);
+				const bytes = encoder.encode(localStorage.getItem(PREFIX + key) ?? "");
+				odinMemoryInterface.loadBytes(bufPtr, bufLen).set(bytes.subarray(0, bufLen));
+			},
+			storage_remove: (keyPtr, keyLen) => {
+				localStorage.removeItem(PREFIX + odinMemoryInterface.loadString(keyPtr, keyLen));
+			},
+		};
+
+		// Configuration for emscripten
+		var Module = {
+			instantiateWasm: (imports, successCallback) => {
+				const newImports = { ...odinImports, ...imports, sudoku_storage: sudokuStorage };
+				return WebAssembly.instantiateStreaming(fetch("index.wasm"), newImports).then((output) => {
+					const e = output.instance.exports;
+					odinMemoryInterface.setExports(e);
+					odinMemoryInterface.setMemory(e.memory);
+					return successCallback(output.instance);
+				});
+			},
+			onRuntimeInitialized: () => {
+				const e = wasmExports;
+
+				e._start(); // runs Odin's @init procedures
+				e.main_start(); // main_web.odin
+
+				const sendSize = () => e.web_window_size_changed(window.innerWidth, window.innerHeight);
+				window.addEventListener("resize", sendSize, true);
+				sendSize();
+
+				// Tab closed or hidden: the browser never calls main_end, so save now
+				document.addEventListener("visibilitychange", () => {
+					if (document.visibilityState === "hidden") e.web_save();
+				});
+				window.addEventListener("pagehide", () => e.web_save());
+
+				function loop() {
+					if (!e.main_update()) {
+						e.main_end();
+						e._end(); // runs Odin's @fini procedures
+						return;
+					}
+					window.requestAnimationFrame(loop);
+				}
+				window.requestAnimationFrame(loop);
+			},
+			print: (text) => console.log(text),
+			canvas: document.getElementById("canvas"),
+		};
+	</script>
+
+	{{{ SCRIPT }}}
+</body>
+</html>
